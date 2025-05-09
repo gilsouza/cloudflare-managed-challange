@@ -15,13 +15,11 @@ type RejectFn = (err: any) => void;
 export class TurnstileService {
   private siteKey: string;
   private widgetId?: number;
-  private ready: Promise<void>;
+  private ready!: Promise<void>;
   private container!: HTMLDivElement;
 
   constructor(siteKey: string) {
     this.siteKey = siteKey;
-
-    this.ready = this.injectScript();
   }
 
   private injectScript(): Promise<void> {
@@ -46,6 +44,10 @@ export class TurnstileService {
   }
 
   public async executeChallenge(): Promise<string> {
+    if (!this.ready) {
+      this.ready = this.injectScript();
+    }
+
     await this.ready;
 
     return new Promise<string>((resolve: ResolveFn, reject: RejectFn) => {
@@ -55,7 +57,7 @@ export class TurnstileService {
       if (this.widgetId == null) {
         this.widgetId = turnstile.render(this.container, {
           sitekey: this.siteKey,
-          size: "invisible",
+          size: "compact",
           callback: resolve,
           "error-callback": reject,
         });
