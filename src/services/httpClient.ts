@@ -1,22 +1,25 @@
 import axios, { AxiosError } from "axios";
 import { TurnstileService } from "./TurnstileService";
 
-const TS = new TurnstileService(process.env.REACT_APP_TURNSTILE_SITEKEY!);
+console.log("Turnstile site key", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+
+const TS = new TurnstileService(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!);
 
 // Cria instância axios
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
-});
+const api = axios.create();
 
 // Intercepta erro
 api.interceptors.response.use(
   (res) => res,
   async (err: AxiosError) => {
     const res = err.response;
+    console.dir("headers", res?.headers);
     if (res?.status === 403 && res.headers["cf-mitigated"] === "challenge") {
+      console.log("Executando challenge Turnstile");
       try {
         const token = await TS.executeChallenge();
         // injeta token no header que o Cloudflare espera (exemplo)
+        console.log("Challenge Turnstile token", token);
         const config = {
           ...err.config,
           headers: {
@@ -24,13 +27,16 @@ api.interceptors.response.use(
             "cf-turnstile-response": token,
           },
         };
+        console.log("New request config", config);
         // reenvia a requisição original
         return api.request(config);
       } catch (e) {
+        console.error("Falha ao executar challenge Turnstile", e);
         // se falhar o Turnstile, repassa o erro original
         return Promise.reject(err);
       }
     }
+    console.error("Falha ao executar request", err);
     return Promise.reject(err);
   }
 );
