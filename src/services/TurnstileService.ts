@@ -24,6 +24,7 @@ export class TurnstileService {
 
   private injectScript(): Promise<void> {
     return new Promise((resolve, reject) => {
+      console.log("TurnstileService :: Executando injectScript");
       if ((window as any).turnstile) return resolve();
 
       // cria e esconde o container uma única vez
@@ -44,6 +45,7 @@ export class TurnstileService {
   }
 
   public async executeChallenge(): Promise<string> {
+    console.log("TurnstileService :: Executando executeChallenge");
     if (!this.ready) {
       this.ready = this.injectScript();
     }
@@ -51,8 +53,10 @@ export class TurnstileService {
     await this.ready;
 
     if (this.widgetId != null) {
+      console.log("TurnstileService :: Executando executeChallenge :: reset");
       // Garante que o widget está limpo antes de re-executar
       (window as any).turnstile.reset(this.widgetId);
+      console.log("TurnstileService :: Widget Resetado");
     }
 
     return new Promise<string>((resolve: ResolveFn, reject: RejectFn) => {
@@ -60,6 +64,7 @@ export class TurnstileService {
 
       // Primeira vez: renderiza o widget invisível
       if (this.widgetId == null) {
+        console.log("TurnstileService :: Widget é null");
         this.widgetId = turnstile.render(this.container, {
           sitekey: this.siteKey,
           size: "compact",
@@ -67,9 +72,11 @@ export class TurnstileService {
           "error-callback": reject,
         });
       }
+      console.log("TurnstileService :: render executado", this.widgetId);
 
       // Dispara o desafio
       turnstile.execute(this.widgetId);
+      console.log("TurnstileService :: executado", this.widgetId);
     });
   }
 }
