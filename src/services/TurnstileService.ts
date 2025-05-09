@@ -10,20 +10,28 @@ declare global {
   }
 }
 type ResolveFn = (token: string) => void;
+type RejectFn = (err: any) => void;
 
 export class TurnstileService {
   private siteKey: string;
   private widgetId?: number;
   private ready: Promise<void>;
+  private container!: HTMLDivElement;
 
   constructor(siteKey: string) {
     this.siteKey = siteKey;
+
     this.ready = this.injectScript();
   }
 
   private injectScript(): Promise<void> {
     return new Promise((resolve, reject) => {
       if ((window as any).turnstile) return resolve();
+
+      // cria e esconde o container uma única vez
+      this.container = document.createElement("div");
+      this.container.style.display = "none";
+      document.body.appendChild(this.container);
 
       const script = document.createElement("script");
       script.src =
@@ -40,20 +48,24 @@ export class TurnstileService {
   public async executeChallenge(): Promise<string> {
     await this.ready;
 
-    return new Promise<string>((resolve: ResolveFn) => {
-      // Se ainda não renderizou, renderiza invisível
+    return new Promise<string>((resolve: ResolveFn, reject: RejectFn) => {
+      const turnstile = (window as any).turnstile;
+
+      // primeira vez: renderiza o widget invisível
       if (this.widgetId == null) {
-        this.widgetId = (window as any).turnstile.render(
-          document.createElement("div"),
-          {
-            sitekey: this.siteKey,
-            size: "invisible",
-            callback: resolve,
-          }
-        );
+        this.widgetId = turnstile.render(this.container, {
+          sitekey: this.siteKey,
+          size: "invisible",
+          callback: resolve,
+          "error-callback": reject,
+        });
+      } else {
+        // garante que o widget está limpo antes de re-executar
+        turnstile.reset(this.widgetId);
       }
-      // dispara o desafio invisível
-      (window as any).turnstile.execute(this.widgetId);
+
+      // dispara o desafio
+      turnstile.execute(this.widgetId);
     });
   }
 }
