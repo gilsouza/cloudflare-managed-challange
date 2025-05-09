@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
         console.log("Turnstile verify response", cfRes.data);
 
-        if (cfRes.data.success) {
+        if (!cfRes.data.success) {
           return NextResponse.json(
             { error: "Turnstile verification failed" },
             { status: 403 }
