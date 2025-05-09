@@ -6,7 +6,9 @@ console.log("Turnstile site key", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 const TS = new TurnstileService(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!);
 
 // Cria instância axios
-const api = axios.create();
+const api = axios.create({
+  withCredentials: true,
+});
 
 // Intercepta erro
 api.interceptors.response.use(
