@@ -50,10 +50,15 @@ export class TurnstileService {
 
     await this.ready;
 
+    if (this.widgetId != null) {
+      // Garante que o widget está limpo antes de re-executar
+      (window as any).turnstile.reset(this.widgetId);
+    }
+
     return new Promise<string>((resolve: ResolveFn, reject: RejectFn) => {
       const turnstile = (window as any).turnstile;
 
-      // primeira vez: renderiza o widget invisível
+      // Primeira vez: renderiza o widget invisível
       if (this.widgetId == null) {
         this.widgetId = turnstile.render(this.container, {
           sitekey: this.siteKey,
@@ -61,12 +66,9 @@ export class TurnstileService {
           callback: resolve,
           "error-callback": reject,
         });
-      } else {
-        // garante que o widget está limpo antes de re-executar
-        turnstile.reset(this.widgetId);
       }
 
-      // dispara o desafio
+      // Dispara o desafio
       turnstile.execute(this.widgetId);
     });
   }
