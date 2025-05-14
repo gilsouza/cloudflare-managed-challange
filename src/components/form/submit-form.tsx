@@ -103,7 +103,8 @@ export function SubmitForm() {
             />
           </div>
         </CardContent>
-        <CardFooter className="p-6">
+        <CardFooter className="p-6 flex flex-col">
+          <div id="turnstile-container" />
           <Button
             type="submit"
             className="w-full bg-accent text-accent-foreground hover:bg-accent/90 rounded-md py-3 text-base font-semibold"
