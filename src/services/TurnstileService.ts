@@ -70,6 +70,7 @@ export class TurnstileService {
           size: "compact",
           callback: resolve,
           "error-callback": reject,
+          appearance: "interaction-only",
         });
       }
       console.log("TurnstileService :: render executado", this.widgetId);
