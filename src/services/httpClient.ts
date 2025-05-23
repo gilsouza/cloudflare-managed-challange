@@ -3,8 +3,6 @@ import { TurnstileService } from "./TurnstileService";
 
 console.log("Turnstile site key", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
-const TS = new TurnstileService(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!);
-
 // Cria instância axios
 const api = axios.create({
   withCredentials: true,
@@ -19,7 +17,9 @@ api.interceptors.response.use(
     if (res?.status === 403 && res.headers["cf-mitigated"] === "challenge") {
       console.log("Executando challenge Turnstile");
       try {
-        const token = await TS.executeChallenge();
+        const token = await TurnstileService.getInstance(
+          process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!
+        ).executeChallenge();
         // injeta token no header que o Cloudflare espera (exemplo)
         console.log("Challenge Turnstile token", token);
         const config = {
