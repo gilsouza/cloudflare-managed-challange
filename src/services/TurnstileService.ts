@@ -193,10 +193,10 @@ export class TurnstileService {
         window.turnstile?.reset(this.widgetId);
       }
 
-      window.turnstile.execute(this.widgetId, {
-        ...(action && { action }),
-        ...(cData && { cData }),
-      });
+      // window.turnstile.execute(this.widgetId, {
+      //   ...(action && { action }),
+      //   ...(cData && { cData }),
+      // });
 
       console.log("TurnstileService :: executeChallenge :: executed");
     });
