@@ -91,8 +91,8 @@ export class TurnstileService {
 
       if (container) {
         this.widgetId = window.turnstile?.render(container, {
-          action,
-          cData,
+          ...(action && { action }),
+          ...(cData && { cData }),
           sitekey: this.siteKey,
           mode: this.mode,
           appearance: this.appearance,
