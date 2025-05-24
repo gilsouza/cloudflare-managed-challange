@@ -4,10 +4,14 @@ declare global {
       render: (
         container: string | HTMLElement,
         params: TurnstileRenderParameters
-      ) => number | undefined;
-      execute: (widgetId?: number) => void;
-      reset: (widgetId?: number) => void;
-      remove: (widgetId?: number) => void;
+      ) => string | undefined;
+      execute: (
+        container: string | HTMLElement,
+        params: Partial<TurnstileRenderParameters>
+      ) => void;
+      reset: (widgetId: string) => void;
+      remove: (widgetId: string) => void;
+      isExpired: (widgetId: string) => boolean;
     };
   }
 
@@ -25,17 +29,22 @@ declare global {
     language?: string;
     tabindex?: number;
     retry?: "auto" | "never";
+    "refresh-expired": "auto" | "never" | "manual";
   }
 }
 
 export class TurnstileService {
   private static instance: TurnstileService;
   private loadPromise: Promise<void> | null = null;
-  private widgetId: number | undefined;
+  private resolveChallenge?: (token: string) => void;
+  private rejectChallenge?: (error: Error) => void;
+  private widgetId: string | undefined;
   private readonly mode = "managed";
   // private readonly appearance = "interaction-only";
   private readonly appearance = "always"; // debug
   private readonly containerId = "#cf-turnstile-container";
+  private readonly refreshExpired = "never";
+  private readonly refreshTimeout = "manual";
 
   private constructor(private siteKey: string) {
     console.log("TurnstileService :: constructor");
@@ -85,6 +94,9 @@ export class TurnstileService {
         console.log(
           "TurnstileService :: loadScript :: start promise :: onload"
         );
+
+        this.render();
+
         resolve();
       };
       cfTurnstileScript.onerror = () => {
@@ -99,6 +111,57 @@ export class TurnstileService {
     return this.loadPromise;
   }
 
+  private render() {
+    let container = document.querySelector(
+      this.containerId
+    ) as HTMLDivElement | null;
+
+    if (container) {
+      console.log(
+        "TurnstileService :: render :: start promise :: container exists"
+      );
+      this.widgetId = window.turnstile?.render(container, {
+        sitekey: this.siteKey,
+        mode: this.mode,
+        appearance: this.appearance,
+        "refresh-expired": this.refreshExpired,
+        "refresh-timeout": this.refreshTimeout,
+        callback: (token: string) => {
+          console.log("TurnstileService :: render :: callback");
+
+          this.resolveChallenge && this.resolveChallenge(token);
+
+          console.log("TurnstileService :: reseted");
+        },
+        // @ts-ignore
+        "error-callback": (error) => {
+          console.log("TurnstileService :: render :: error-callback", error);
+          this.rejectChallenge &&
+            this.rejectChallenge(new Error("Turnstile challenge error"));
+        },
+        // @ts-ignore
+        "expired-callback": (error) => {
+          console.log("TurnstileService :: render :: expired-callback", error);
+          this.rejectChallenge &&
+            this.rejectChallenge(new Error("Turnstile challenge expired"));
+        },
+      });
+    }
+  }
+
+  public remove() {
+    console.log("TurnstileService :: remove");
+
+    if (this.widgetId) {
+      window.turnstile?.remove(this.widgetId);
+      this.widgetId = undefined;
+      this.resolveChallenge = undefined;
+      this.rejectChallenge = undefined;
+    } else {
+      console.log("TurnstileService :: remove :: widgetId is null");
+    }
+  }
+
   public async executeChallenge(
     action?: string,
     cData?: string
@@ -107,47 +170,17 @@ export class TurnstileService {
     await this.loadScript();
 
     return new Promise<string>((resolve, reject) => {
-      console.log("TurnstileService :: executeChallenge :: start promise");
-      let container = document.querySelector(
-        this.containerId
-      ) as HTMLDivElement | null;
-
-      if (container) {
-        console.log(
-          "TurnstileService :: executeChallenge :: start promise :: container exists"
-        );
-        this.widgetId = window.turnstile?.render(container, {
-          ...(action && { action }),
-          ...(cData && { cData }),
-          sitekey: this.siteKey,
-          mode: this.mode,
-          appearance: this.appearance,
-          callback: (token: string) => {
-            console.log(
-              "TurnstileService :: executeChallenge :: render :: callback"
-            );
-            resolve(token);
-            window.turnstile?.reset(this.widgetId!);
-            console.log("TurnstileService :: executeChallenge :: reseted");
-          },
-          // @ts-ignore
-          "error-callback": (error) => {
-            console.log(
-              "TurnstileService :: executeChallenge :: render :: error-callback",
-              error
-            );
-            reject(new Error("Turnstile challenge error"));
-          },
-          // @ts-ignore
-          "expired-callback": (error) => {
-            console.log(
-              "TurnstileService :: executeChallenge :: render :: expired-callback",
-              error
-            );
-            reject(new Error("Turnstile challenge expired"));
-          },
-        });
+      if (!window.turnstile) {
+        reject(new Error("Turnstile load script failed"));
+        return;
       }
+
+      console.log(
+        "TurnstileService :: executeChallenge :: start and setting promises"
+      );
+
+      this.resolveChallenge = resolve;
+      this.rejectChallenge = reject;
 
       if (!this.widgetId) {
         console.log("TurnstileService :: executeChallenge :: widgetId is null");
@@ -155,7 +188,16 @@ export class TurnstileService {
         return;
       }
 
-      window.turnstile?.execute(this.widgetId);
+      if (window.turnstile.isExpired(this.widgetId)) {
+        console.log("TurnstileService :: executeChallenge :: reset widget");
+        window.turnstile?.reset(this.widgetId);
+      }
+
+      window.turnstile.execute(this.widgetId, {
+        ...(action && { action }),
+        ...(cData && { cData }),
+      });
+
       console.log("TurnstileService :: executeChallenge :: executed");
     });
   }
