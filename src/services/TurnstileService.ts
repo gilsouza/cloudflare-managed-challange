@@ -37,8 +37,11 @@ export class TurnstileService {
   // private readonly appearance = "interaction-only";
   private readonly appearance = "always"; // debug
   private readonly containerId = "#cf-turnstile-container";
-  private readonly refreshExpired = "manual";
-  private readonly refreshTimeout = "manual";
+  // by default, refresh-expired is set to "auto"
+  private readonly refreshExpired = "auto";
+  // by default, refresh-timeout is set to "auto"
+  private readonly refreshTimeout = "auto";
+  // by default, the Turnstile widget is executed automatically on render
   // private readonly executionMode = "execute";
 
   private constructor(private siteKey: string) {
@@ -124,9 +127,12 @@ export class TurnstileService {
         sitekey: this.siteKey,
         mode: this.mode,
         appearance: this.appearance,
-        "refresh-expired": this.refreshExpired,
-        "refresh-timeout": this.refreshTimeout,
+        // by default, refresh-expired is set to "auto"
+        // "refresh-expired": this.refreshExpired,
+        // by default, refresh-timeout is set to "auto"
+        // "refresh-timeout": this.refreshTimeout,
         theme: this.theme,
+        // by default, the Turnstile widget is executed automatically on render
         // execution: this.executionMode,
         callback: (token: string) => {
           console.log("TurnstileService :: render :: callback");

@@ -18,7 +18,11 @@ export async function POST(request: NextRequest) {
     console.log("Turnstile token", token);
     console.log("Turnstile cf_clearance", cf_clearance);
 
-    if (token && cf_clearance) {
+    if (!token && !!cf_clearance) {
+      return NextResponse.json({ status: 403 });
+    }
+
+    if (token && !!cf_clearance) {
       try {
         const secret = process.env.TURNSTILE_SECRET_KEY!;
         const remoteIp =
@@ -48,10 +52,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (e) {
         console.error("Turnstile verify error", e);
-        return NextResponse.json(
-          { error: "Turnstile service error" },
-          { status: 500 }
-        );
+        return NextResponse.json({ status: 500 });
       }
     }
 
@@ -60,7 +61,10 @@ export async function POST(request: NextRequest) {
 
     console.log("Received data:", { field1, field2 });
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Simulate some processing time
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.floor(Math.random() * 1000))
+    );
 
     return NextResponse.json(
       {
