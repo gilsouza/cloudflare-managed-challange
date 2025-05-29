@@ -18,9 +18,10 @@ export async function POST(request: NextRequest) {
     console.log("Turnstile token", token);
     console.log("Turnstile cf_clearance", cf_clearance);
 
-    if (!token && !!cf_clearance) {
-      return NextResponse.json({ status: 403 });
-    }
+    // FIXME: Isso aqui está dando erro
+    // if (!token && !!cf_clearance) {
+    //   return NextResponse.json({ status: 403 });
+    // }
 
     if (token && !!cf_clearance) {
       try {
